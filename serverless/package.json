@@ -1,0 +1,10 @@
+{
+  "name": "serverless-orders-lab",
+  "version": "1.0.0",
+  "description": "Lab: Lambda + SQS + RDS para procesamiento de órdenes",
+  "private": true,
+  "dependencies": {
+    "@aws-sdk/client-sqs": "3.624.0",
+    "pg": "8.12.0"
+  }
+}
