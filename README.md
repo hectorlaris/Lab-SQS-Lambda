@@ -18,6 +18,9 @@ Clientes ──→ API Gateway ──→ Lambda Productor ──→ SQS Queue �
                                                    Dead Letter Queue
 ```
 
+![Pipeline Flow Diagram](docs/arquitectura.png)
+
+
 - SQS actúa como **buffer resiliente** entre la petición y la escritura a DB
 - Si RDS se cae: mensajes quedan en SQS, se procesan cuando vuelva
 - Si Lambda falla: SQS reintenta automáticamente
