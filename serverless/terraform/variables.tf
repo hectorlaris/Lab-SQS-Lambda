@@ -10,6 +10,12 @@ variable "project_name" {
   default     = "orders-lab-sls"
 }
 
+variable "aws_profile" {
+  description = "profile para hacer ela provisionamiento"
+  type        = string
+  default     = "hserrano-aws-v2"
+}
+
 # --- SQS ---
 
 variable "sqs_visibility_timeout" {

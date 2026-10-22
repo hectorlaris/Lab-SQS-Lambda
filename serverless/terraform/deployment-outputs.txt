@@ -1,0 +1,18 @@
+api_url = "https://yq20559n8e.execute-api.us-east-1.amazonaws.com/orders"
+check_dlq = "aws sqs get-queue-attributes --queue-url https://sqs.us-east-1.amazonaws.com/962682390364/orders-lab-sls-orders-dlq --attribute-names ApproximateNumberOfMessages"
+check_queue_depth = "aws sqs get-queue-attributes --queue-url https://sqs.us-east-1.amazonaws.com/962682390364/orders-lab-sls-orders-queue --attribute-names ApproximateNumberOfMessages"
+dlq_url = "https://sqs.us-east-1.amazonaws.com/962682390364/orders-lab-sls-orders-dlq"
+load_test_command = <<EOT
+echo '{"product":"laptop","quantity":1,"customer":"test@example.com"}' > /tmp/payload.json
+ab -n 500 -c 50 -p /tmp/payload.json -T "application/json" \
+  https://yq20559n8e.execute-api.us-east-1.amazonaws.com/orders
+
+EOT
+rds_endpoint = "orders-lab-sls-db.cno0oguwitzc.us-east-1.rds.amazonaws.com"
+sqs_queue_url = "https://sqs.us-east-1.amazonaws.com/962682390364/orders-lab-sls-orders-queue"
+test_command = <<EOT
+curl -X POST https://yq20559n8e.execute-api.us-east-1.amazonaws.com/orders \
+  -H "Content-Type: application/json" \
+  -d '{"product": "laptop", "quantity": 1, "customer": "juan@example.com"}'
+
+EOT

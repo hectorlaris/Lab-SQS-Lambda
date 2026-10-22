@@ -15,7 +15,7 @@ terraform {
 
 provider "aws" {
   region  = var.aws_region
-  profile = "camilo-labs"
+  profile =  var.aws_profile
 
   default_tags {
     tags = {
