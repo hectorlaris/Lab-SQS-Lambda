@@ -1,0 +1,63 @@
+flowchart LR
+    Client([Cliente / curl]) -->|POST /orders| APIGW
+
+    subgraph AWS["AWS - us-east-1"]
+        APIGW["API Gateway HTTP<br/>orders-lab-sls-api<br/>Route: POST /orders<br/>CORS habilitado"]
+
+        subgraph LambdaPublic["Lambda - fuera de VPC"]
+            Producer["Lambda Producer<br/>nodejs22.x<br/>HTTP to SQS"]
+        end
+
+        APIGW -->|AWS_PROXY<br/>invoke| Producer
+
+        subgraph Messaging["Mensajería SQS"]
+            Queue["SQS orders-queue<br/>visibility 60s<br/>long polling 20s<br/>maxReceiveCount 3"]
+            DLQ["SQS orders-dlq<br/>retención 14 días<br/>mensajes fallidos"]
+        end
+
+        Producer -->|SendMessage| Queue
+        Queue -.->|tras 3 fallos<br/>redrive| DLQ
+
+        subgraph VPC["VPC 10.1.0.0/16 - Subnets privadas x2"]
+            subgraph LambdaVPC["Lambda en VPC - SG lambda"]
+                Consumer["Lambda Consumer<br/>nodejs22.x<br/>batch 5<br/>ReportBatchItemFailures"]
+            end
+            RDS[("RDS PostgreSQL 15<br/>db.t3.micro<br/>DB: orders<br/>puerto 5432 - SG rds")]
+            EPSqs["VPC Endpoint SQS<br/>Interface"]
+            EPLogs["VPC Endpoint Logs<br/>Interface"]
+        end
+
+        Queue -->|Event Source Mapping<br/>polling automático| Consumer
+        Consumer -->|INSERT orders<br/>5432| RDS
+        Consumer -.->|DeleteMessage<br/>vía endpoint| EPSqs
+        EPSqs -.-> Queue
+
+        subgraph Observability["CloudWatch"]
+            LogsP["Log Group Producer<br/>7 días"]
+            LogsC["Log Group Consumer<br/>7 días"]
+        end
+
+        Producer -.->|logs| LogsP
+        Consumer -.->|logs vía endpoint| EPLogs
+        EPLogs -.-> LogsC
+    end
+
+    subgraph IAM["IAM Roles - permisos mínimos"]
+        RoleP["producer-role<br/>sqs:SendMessage"]
+        RoleC["consumer-role<br/>sqs:Receive/Delete<br/>ec2 ENI (VPC)"]
+    end
+
+    RoleP -.->|assume| Producer
+    RoleC -.->|assume| Consumer
+
+    classDef compute fill:#FF9900,stroke:#333,color:#fff
+    classDef queue fill:#CC2264,stroke:#333,color:#fff
+    classDef db fill:#3B48CC,stroke:#333,color:#fff
+    classDef net fill:#7AA116,stroke:#333,color:#fff
+    classDef obs fill:#759C3E,stroke:#333,color:#fff
+
+    class Producer,Consumer,APIGW compute
+    class Queue,DLQ queue
+    class RDS db
+    class EPSqs,EPLogs net
+    class LogsP,LogsC obs
